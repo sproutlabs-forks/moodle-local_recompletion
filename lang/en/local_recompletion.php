@@ -150,3 +150,8 @@ $string['resetltis'] = 'LTI grades';
 $string['resetltis_help'] = 'How to handle LTI grades within the course.
 If the setting \'Reset LTI grades\' is used, all grade LTI results will be reset to 0.
 When user achieved new completion in the course, the updated course grade will be resend to the LTI provider.';
+$string['notifyheading'] = 'Notify heading';
+$string['defaultleadtime'] = 'Notify lead time in days';
+$string['defaultnotifysubject'] = 'Default notify subject';
+$string['recompletionemailbody'] = 'Default notify subject body';
+$string['advancenotifytask'] = 'Advance notify task';

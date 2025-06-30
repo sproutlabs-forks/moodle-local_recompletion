@@ -14,42 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Edit course completion settings - the form definition.
- *
- * @package     local_recompletion
- * @copyright   2017 Dan Marsden
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Defines the course completion settings form.
- *
- * @copyright   2017 Dan Marsden
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-class local_recompletion_recompletion_form extends moodleform {
+class local_recompletion_recompletion_form extends moodleform
+{
 
-    /**
-     * Defines the form fields.
-     */
-    public function definition() {
+    public function definition()
+    {
 
         $mform = $this->_form;
         $course = $this->_customdata['course'];
         $config = get_config('local_recompletion');
 
+        // Enable recompletion.
         $mform->addElement('checkbox', 'enable', get_string('enablerecompletion', 'local_recompletion'));
         $mform->addHelpButton('enable', 'enablerecompletion', 'local_recompletion');
 
+        // Recompletion duration.
         $options = array('optional' => false, 'defaultunit' => 86400);
         $mform->addElement('duration', 'recompletionduration', get_string('recompletionrange', 'local_recompletion'), $options);
         $mform->addHelpButton('recompletionduration', 'recompletionrange', 'local_recompletion');
         $mform->disabledIf('recompletionduration', 'enable', 'notchecked');
         $mform->setDefault('recompletionduration', $config->duration);
 
+        // Email enable.
         $mform->addElement('checkbox', 'recompletionemailenable', get_string('recompletionemailenable', 'local_recompletion'));
         $mform->setDefault('recompletionemailenable', $config->emailenable);
         $mform->addHelpButton('recompletionemailenable', 'recompletionemailenable', 'local_recompletion');
@@ -58,8 +46,7 @@ class local_recompletion_recompletion_form extends moodleform {
         // Email Notification settings.
         $mform->addElement('header', 'emailheader', get_string('emailrecompletiontitle', 'local_recompletion'));
         $mform->setExpanded('emailheader', false);
-        $mform->addElement('text', 'recompletionemailsubject', get_string('recompletionemailsubject', 'local_recompletion'),
-                'size = "80"');
+        $mform->addElement('text', 'recompletionemailsubject', get_string('recompletionemailsubject', 'local_recompletion'), 'size="80"');
         $mform->setType('recompletionemailsubject', PARAM_TEXT);
         $mform->addHelpButton('recompletionemailsubject', 'recompletionemailsubject', 'local_recompletion');
         $mform->disabledIf('recompletionemailsubject', 'enable', 'notchecked');
@@ -67,15 +54,13 @@ class local_recompletion_recompletion_form extends moodleform {
         $mform->setDefault('recompletionemailsubject', $config->emailsubject);
 
         $options = array('cols' => '60', 'rows' => '8');
-        $mform->addElement('textarea', 'recompletionemailbody', get_string('recompletionemailbody', 'local_recompletion'),
-                $options);
+        $mform->addElement('textarea', 'recompletionemailbody', get_string('recompletionemailbody', 'local_recompletion'), $options);
         $mform->addHelpButton('recompletionemailbody', 'recompletionemailbody', 'local_recompletion');
         $mform->disabledIf('recompletionemailbody', 'enable', 'notchecked');
         $mform->disabledIf('recompletionemailbody', 'recompletionemailenable', 'notchecked');
         $mform->setDefault('recompletionemailbody', $config->emailbody);
 
         // Advanced recompletion settings.
-        // Delete data section.
         $mform->addElement('header', 'advancedheader', get_string('advancedrecompletiontitle', 'local_recompletion'));
         $mform->setExpanded('advancedheader', false);
 
@@ -84,12 +69,11 @@ class local_recompletion_recompletion_form extends moodleform {
         $mform->addHelpButton('deletegradedata', 'deletegradedata', 'local_recompletion');
 
         $mform->addElement('checkbox', 'archivecompletiondata', get_string('archivecompletiondata', 'local_recompletion'));
-        // If we are forcing completion data archive, always be ticked.
         $archivedefault = $config->forcearchivecompletiondata ? 1 : $config->archivecompletiondata;
         $mform->setDefault('archivecompletiondata', $archivedefault);
         $mform->addHelpButton('archivecompletiondata', 'archivecompletiondata', 'local_recompletion');
 
-        // Get all plugins that are supported.
+        // Supported activities.
         $activities = local_recompletion_get_supported_activities();
         foreach ($activities as $activity) {
             $fqn = 'local_recompletion\\activities\\' . $activity;
@@ -100,10 +84,29 @@ class local_recompletion_recompletion_form extends moodleform {
         $mform->disabledIf('archivecompletiondata', 'enable', 'notchecked');
         $mform->disabledIf('archivecompletiondata', 'forcearchive', 'eq');
 
-        // Add common action buttons.
-        $this->add_action_buttons();
+        // Advance Notification Settings.
+        $mform->addElement('header', 'notifyheader', get_string('notifyheading', 'local_recompletion'));
+        $mform->setExpanded('notifyheader', false);
 
-        // Add hidden fields.
+        $mform->addElement('text', 'notifyleadtime', get_string('defaultleadtime', 'local_recompletion'), 'size="5"');
+        $mform->setType('notifyleadtime', PARAM_INT);
+        $mform->setDefault('notifyleadtime', $config->notifyleadtime);
+       
+
+        $mform->addElement('text', 'notifysubject', get_string('defaultnotifysubject', 'local_recompletion'), 'size="80"');
+        $mform->setType('notifysubject', PARAM_TEXT);
+        $mform->setDefault('notifysubject', $config->notifysubject);
+        
+
+        $options = array('cols' => '60', 'rows' => '8');
+        $mform->addElement('textarea', 'notifymessagebody', get_string('recompletionemailbody', 'local_recompletion'), $options);
+        $mform->addHelpButton('notifymessagebody', 'recompletionemailbody', 'local_recompletion');
+        $mform->disabledIf('notifymessagebody', 'enable', 'notchecked');
+        $mform->disabledIf('notifymessagebody', 'recompletionemailenable', 'notchecked');
+        $mform->setDefault('notifymessagebody', $config->notifymessagebody);
+
+        // Buttons and hidden fields.
+        $this->add_action_buttons();
         $mform->addElement('hidden', 'course', $course->id);
         $mform->setType('course', PARAM_INT);
         $mform->addElement('hidden', 'forcearchive', $config->forcearchivecompletiondata);

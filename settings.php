@@ -57,7 +57,39 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_configcheckbox('local_recompletion/forcearchivecompletiondata',
         new lang_string('forcearchivecompletiondata', 'local_recompletion'),
         new lang_string('forcearchivecompletiondata_help', 'local_recompletion'), 0));
+// ===== ADVANCE NOTIFICATION SETTINGS =====
+    $settings->add(new admin_setting_heading(
+        'local_recompletion/notifyheading',
+        get_string('notifyheading', 'local_recompletion'),
+        get_string('notifydesc', 'local_recompletion')
+    ));
 
+// Default lead times (in days) for advance notification (comma-separated per course override)
+    $settings->add(new admin_setting_configtext(
+        'local_recompletion/default_leadtime',
+        get_string('defaultleadtime', 'local_recompletion'),
+        get_string('defaultleadtime_desc', 'local_recompletion'),
+        180,
+        PARAM_INT
+    ));
+
+// Default subject
+    $settings->add(new admin_setting_configtext(
+        'local_recompletion/default_notify_subject',
+        get_string('defaultnotifysubject', 'local_recompletion'),
+        get_string('defaultnotifysubject_desc', 'local_recompletion'),
+        get_string('defaultnotifysubject_value', 'local_recompletion'),
+        PARAM_TEXT
+    ));
+
+// Default message body (HTML allowed)
+    $settings->add(new admin_setting_configtextarea(
+        'local_recompletion/default_notify_message',
+        get_string('defaultnotifymessage', 'local_recompletion'),
+        get_string('defaultnotifymessage_desc', 'local_recompletion'),
+        get_string('defaultnotifymessage_value', 'local_recompletion'),
+        PARAM_RAW
+    ));
     $activities = local_recompletion_get_supported_activities();
     foreach ($activities as $activity) {
         $fqn = 'local_recompletion\\activities\\' . $activity;
