@@ -155,3 +155,18 @@ $string['defaultleadtime'] = 'Notify lead time in days';
 $string['defaultnotifysubject'] = 'Default notify subject';
 $string['recompletionemailbody'] = 'Default notify subject body';
 $string['advancenotifytask'] = 'Advance notify task';
+
+//BK Changes
+
+$string['notifydesc'] = 'Notify description';
+$string['defaultleadtime'] = 'Default lead time in days';
+$string['defaultleadtime_desc'] = 'Default lead time in days';
+$string['defaultnotifysubject_desc'] = 'Default notify subject body';
+$string['defaultnotifymessage'] = 'Default notify message';
+$string['defaultnotifymessage_desc'] = '';
+$string['defaultnotifysubject_value'] = '';
+$string['defaultnotifymessage_value'] = '';
+$string['uploadusers'] = 'Upload users';
+$string['event_coursemarkedcompletebulk'] = 'Course marked complete via bulk upload';
+$string['importsuccess'] = 'Import successful';
+$string['bulkcompletionupload'] = 'Bulk completion upload';

@@ -8,11 +8,11 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle. If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * URKUND observers.
@@ -25,9 +25,20 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$observers = array (
+$observers = array(
     array(
         'eventname' => '\mod_assign\event\submission_graded',
-        'callback' => 'local_recompletion_observer::submission_graded'
+        'callback'  => 'local_recompletion_observer::submission_graded'
     ),
 );
+
+// Declare local_recompletion events here (for custom events).
+$events = [
+    'local_recompletion\event\course_marked_complete_bulk' => [
+        'classname'   => 'local_recompletion\event\course_marked_complete_bulk',
+        'description' => 'Event triggered when a user is marked complete via the bulk recompletion upload.',
+        'crud'        => 'u',
+        'edulevel'    => 2,
+        'objecttable' => 'course_completions',
+    ],
+];

@@ -95,4 +95,12 @@ if ($hassiteconfig) {
         $fqn = 'local_recompletion\\activities\\' . $activity;
         $fqn::settings($settings);
     }
+    
+
+    $ADMIN->add('courses', new admin_externalpage(
+        'local_recompletion_bulkupload',
+        get_string('bulkcompletionupload', 'local_recompletion'),
+        new moodle_url('/local/recompletion/bulkupload.php'),
+        'moodle/site:config'
+    ));
 }
