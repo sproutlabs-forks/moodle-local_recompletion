@@ -1,0 +1,34 @@
+define(['jquery'], function ($) {
+    return {
+        init: function () {
+            console.log("injectbulkreset.js loaded");
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('s');
+
+            if (!sessionId) {
+                console.warn("Session ID 's' not found in URL.");
+                return;
+            }
+
+            const $region = $('#region-main');
+
+            if ($region.length) {
+                // Find the first <a> tag with href matching attendees.php?
+                const $targetLink = $region.find('a[href*="attendees.php?"]').first();
+
+                if ($targetLink.length) {
+                    const $bulkResetLink = $(`
+                <a class="btn-bulk reset " style="margin-right: 10px;" href="/local/recompletion/bulkreset.php?s=${sessionId}" target="_blank">
+                            Bulk reset for this session
+                        </a>
+                    `);
+
+                    $targetLink.before($bulkResetLink);
+                } else {
+                    console.warn("No attendees.php link found in #region-main.");
+                }
+            }
+        }
+    };
+});

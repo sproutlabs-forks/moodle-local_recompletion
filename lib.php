@@ -155,3 +155,13 @@ function recompletion_mark_course_completion($userid, $courseid, $unixtimestamp)
     $event->trigger();
 
 }
+
+function local_recompletion_extend_navigation(global_navigation $nav)
+{
+    global $PAGE;
+    $url = $PAGE->url->out_as_local_url(false);
+    if (strpos($url, '/mod/facetoface/attendees.php') !== false) {
+        $PAGE->requires->js_call_amd('local_recompletion/injectbulkreset', 'init');
+    }
+}
+

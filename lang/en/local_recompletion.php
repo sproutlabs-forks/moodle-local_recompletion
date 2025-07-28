@@ -170,3 +170,5 @@ $string['uploadusers'] = 'Upload users';
 $string['event_coursemarkedcompletebulk'] = 'Course marked complete via bulk upload';
 $string['importsuccess'] = 'Import successful';
 $string['bulkcompletionupload'] = 'Bulk completion upload';
+$string['bulkreset'] = 'Bulk User Reset';
+$string['resetcomplete'] = 'User reset completed successfully.';
