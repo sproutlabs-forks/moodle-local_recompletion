@@ -43,6 +43,15 @@ $tasks = array(
         'day' => '*',
         'dayofweek' => '*',
         'month' => '*'
+    ],
+    [
+        'classname' => 'local_recompletion\task\process_bulk_completion_files',
+        'blocking' => 0,
+        'minute' => '*/30', // Every 30 minutes
+        'hour' => '*',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*',
     ]
 
 );

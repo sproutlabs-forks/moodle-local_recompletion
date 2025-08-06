@@ -172,3 +172,4 @@ $string['importsuccess'] = 'Import successful';
 $string['bulkcompletionupload'] = 'Bulk completion upload';
 $string['bulkreset'] = 'Bulk User Reset';
 $string['resetcomplete'] = 'User reset completed successfully.';
+$string['processbulkuploadtask'] = 'Process bulk upload CSV files for course completion';

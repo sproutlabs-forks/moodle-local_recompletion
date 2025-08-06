@@ -31,56 +31,64 @@ defined('MOODLE_INTERNAL') || die;
  * @param stdClass $course The course to object for the tool
  * @param context $context The context of the course
  */
-function import_completion_file(stored_file $import_file)
-{
+function import_completion_file(string $filepath): array {
     global $DB;
 
-    $fh = $import_file->get_content_file_handle();
+    $fh = fopen($filepath, 'r');
     $csv = [];
+    $exceptions = []; // To collect exception rows
 
     if ($fh) {
         $columns = fgetcsv($fh); // read header
-        $i = 0;
         while (($row = fgetcsv($fh)) !== false) {
             if (count($row) !== count($columns)) {
                 continue; // skip bad row
             }
             $csv[] = array_combine($columns, $row);
-            $i++;
         }
         fclose($fh);
     }
 
-    // Process rows
     foreach ($csv as $row) {
         $email = trim($row['email']);
-        $completed = trim($row['completed']); // Format: 17/12/2023
+        $completed = trim($row['completed']);
         $courseid = trim($row['courseid']);
 
-        // Find user by email
         $user = $DB->get_record('user', ['email' => $email, 'deleted' => 0], '*', IGNORE_MISSING);
         if (!$user) {
-            // mtrace("⚠️ User not found: $email");
+            $row['reason'] = 'User not found';
+            $exceptions[] = $row;
             continue;
         }
 
-        // Convert to unixtimestamp using Hobart timezone
+        $context = context_course::instance($courseid, IGNORE_MISSING);
+        if (!$context) {
+            $row['reason'] = 'Invalid course ID';
+            $exceptions[] = $row;
+            continue;
+        }
+
+        if (!is_enrolled($context, $user->id)) {
+            $row['reason'] = 'User not enrolled';
+            $exceptions[] = $row;
+            continue;
+        }
+
         $dt = DateTime::createFromFormat('d/m/Y', $completed, new DateTimeZone('Australia/Hobart'));
         if (!$dt) {
-            //mtrace("⚠️ Invalid date format: $completed for user $email");
+            $row['reason'] = 'Invalid date format';
+            $exceptions[] = $row;
             continue;
         }
-        $unixtimestamp = $dt->getTimestamp();
-        //mtrace("⚠️ User not found: $email");
-        // Call your existing function
-        recompletion_mark_course_completion($user->id, $courseid, $unixtimestamp);
-        //mtrace("⚠️ Done: $email");
 
-        // You can extend here to find user by email and update completion data
+        $unixtimestamp = $dt->getTimestamp();
+        recompletion_mark_course_completion($user->id, $courseid, $unixtimestamp);
     }
 
-    return get_string('importsuccess', 'local_recompletion');
+    return $exceptions;
 }
+
+
 
 function local_recompletion_extend_navigation_course($navigation, $course, $context)
 {
