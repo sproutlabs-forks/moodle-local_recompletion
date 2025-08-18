@@ -25,71 +25,64 @@ class advance_notify_task extends scheduled_task
         require_once($CFG->dirroot . '/course/lib.php');
         require_once($CFG->dirroot . '/local/recompletion/locallib.php');
         require_once($CFG->libdir . '/completionlib.php');
-        $now = time();
 
+        $siteconfig = get_config('local_recompletion');
 
+        print_r($siteconfig);
+        
         $courses = $DB->get_records_sql("
-    SELECT c.id, c.fullname
-    FROM {course} c
+        SELECT c.id, c.fullname
+          FROM {course} c
     JOIN {local_recompletion_config} cfg1 
       ON cfg1.course = c.id AND cfg1.name = 'enable' AND cfg1.value = '1'
-    WHERE c.enablecompletion = :enabled", ['enabled' => COMPLETION_ENABLED]);
-
+         WHERE c.enablecompletion = :enabled",
+            ['enabled' => COMPLETION_ENABLED]
+        );
 
         foreach ($courses as $course) {
-            print_r($course);
-            $config = (object)$DB->get_records_menu(
+            $duration = (int)$siteconfig->duration;
+            $leadseconds = (int)$siteconfig->default_leadtime * DAYSECS;
+
+            $courseconfig = (object)$DB->get_records_menu(
                 'local_recompletion_config',
                 ['course' => $course->id],
                 '',
                 'name,value'
             );
-
-            $now = time();
-            $duration = (int)$config->recompletionduration;       // seconds (e.g. 100 * 86400)
-            $leadseconds = (int)$config->notifyleadtime * 86400;  // lead time in seconds
-
+            
             $sql = "
-    SELECT userid, course, timecompleted
-    FROM {course_completions}
-    WHERE course = :courseid
-      AND timecompleted > 0
-      AND (
-            ((timecompleted + :duration1) - :leadtime) <= :now1
-            OR
-            (timecompleted + :duration2) <= :now2
-      )
-";
+            SELECT userid, course, timecompleted
+              FROM {course_completions}
+             WHERE course = :courseid
+               AND timecompleted > 0
+               AND (
+                    ((timecompleted + :duration1) - :leadtime) <= :now1
+                    OR
+                    (timecompleted + :duration2) <= :now2
+               )
+        ";
 
             $now = time();
-
             $params = [
                 'courseid' => $course->id,
-                'duration1' => $duration,     // recompletion duration in seconds
-                'duration2' => $duration,     // recompletion duration in seconds
-                'leadtime' => $leadseconds,      // lead time in seconds
+                'duration1' => $duration,
+                'duration2' => $duration,
+                'leadtime' => $leadseconds,
                 'now1' => $now,
                 'now2' => $now,
             ];
 
+            $coursecompletions = $DB->get_records_sql($sql, $params);
 
-            $course_completions = $DB->get_records_sql($sql, $params);
-            print_r($course_completions);
-
-
-            foreach ($course_completions as $cc) {
-                // each $cc is due for a reminder today
-                $this->send_advance_notification($cc->userid, $course, $config);
+            foreach ($coursecompletions as $cc) {
+                $this->send_advance_notification($cc->userid, $course, $siteconfig,$courseconfig);
             }
-
         }
-
     }
 
-    protected function send_advance_notification($userid, $course, $config)
+    protected function send_advance_notification($userid, $course, $config,$courseconfig)
     {
         global $DB, $CFG;
-
         $user = $DB->get_record('user', ['id' => $userid]);
         if (!$user) {
             return;
@@ -104,16 +97,18 @@ class advance_notify_task extends scheduled_task
         $a->link = "$CFG->wwwroot/course/view.php?id=$course->id";
         $a->fullname = fullname($user);
         $a->email = $user->email;
+        $a->leadtime = $courseconfig->notifyleadtime;
 
-        $bodytemplate = $config->notifymessagebody ?? '';
-        $subjecttemplate = $config->notifysubject ?? '';
+        $bodytemplate = $config->default_notify_message ?? '';
+        $subjecttemplate = $config->default_notify_subject ?? '';
 
         $replacements = [
             '{$a->coursename}' => $a->coursename,
             '{$a->profileurl}' => $a->profileurl,
             '{$a->link}' => $a->link,
             '{$a->fullname}' => $a->fullname,
-            '{$a->email}' => $a->email
+            '{$a->email}' => $a->email,
+            '{$a->leadtime}' => $a->leadtime
         ];
 
         $message = strtr($bodytemplate, $replacements);

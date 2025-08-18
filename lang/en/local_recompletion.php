@@ -164,8 +164,17 @@ $string['defaultleadtime_desc'] = 'Default lead time in days';
 $string['defaultnotifysubject_desc'] = 'Default notify subject body';
 $string['defaultnotifymessage'] = 'Default notify message';
 $string['defaultnotifymessage_desc'] = '';
-$string['defaultnotifysubject_value'] = '';
-$string['defaultnotifymessage_value'] = '';
+$string['defaultnotifysubject_value'] = 'Reminder ({$a->leadtime}) Course: {$a->coursename} has expired or been manually reset';
+$string['defaultnotifymessage_value'] = 'Dear {$a->fullname}
+
+The following course was reset due to the compliancy expiring or due to a manual course reset. 
+
+Select the course link to recomplete the course.
+
+Course: {$a->coursename}
+Link: {$a->link}
+ 
+This is an automatic email sent by the THEO Learning Management System (LMS). For further assistance, email  hrsystems@health.tas.gov.au';
 $string['uploadusers'] = 'Upload users';
 $string['event_coursemarkedcompletebulk'] = 'Course marked complete via bulk upload';
 $string['importsuccess'] = 'Import successful';
