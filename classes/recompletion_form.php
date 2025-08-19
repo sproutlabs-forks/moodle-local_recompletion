@@ -53,6 +53,7 @@ class local_recompletion_recompletion_form extends moodleform
         $mform->disabledIf('recompletionemailsubject', 'recompletionemailenable', 'notchecked');
         $mform->setDefault('recompletionemailsubject', $config->emailsubject);
 
+        
         $options = array('cols' => '60', 'rows' => '8');
         $mform->addElement('textarea', 'recompletionemailbody', get_string('recompletionemailbody', 'local_recompletion'), $options);
         $mform->addHelpButton('recompletionemailbody', 'recompletionemailbody', 'local_recompletion');
@@ -92,7 +93,7 @@ class local_recompletion_recompletion_form extends moodleform
         $mform->setType('notifyleadtime', PARAM_INT);
         $mform->setDefault('notifyleadtime', $config->notifyleadtime);
        
-
+        /* Hide for now.
         $mform->addElement('text', 'notifysubject', get_string('defaultnotifysubject', 'local_recompletion'), 'size="80"');
         $mform->setType('notifysubject', PARAM_TEXT);
         $mform->setDefault('notifysubject', $config->notifysubject);
@@ -105,6 +106,7 @@ class local_recompletion_recompletion_form extends moodleform
         $mform->disabledIf('notifymessagebody', 'recompletionemailenable', 'notchecked');
         $mform->setDefault('notifymessagebody', $config->notifymessagebody);
 
+        */
         // Buttons and hidden fields.
         $this->add_action_buttons();
         $mform->addElement('hidden', 'course', $course->id);

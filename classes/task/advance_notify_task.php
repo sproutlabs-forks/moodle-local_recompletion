@@ -28,15 +28,15 @@ class advance_notify_task extends scheduled_task
 
         $siteconfig = get_config('local_recompletion');
 
-        print_r($siteconfig);
-        
         $courses = $DB->get_records_sql("
-        SELECT c.id, c.fullname
-          FROM {course} c
-    JOIN {local_recompletion_config} cfg1 
-      ON cfg1.course = c.id AND cfg1.name = 'enable' AND cfg1.value = '1'
-         WHERE c.enablecompletion = :enabled",
-            ['enabled' => COMPLETION_ENABLED]
+    SELECT DISTINCT c.id, c.fullname
+      FROM {course} c
+      JOIN {local_recompletion_config} cfg
+        ON cfg.course = c.id
+       AND cfg.name = :cfgname
+       AND cfg.value = :cfgval
+     WHERE c.enablecompletion = :enabled",
+            ['cfgname' => 'enable', 'cfgval' => '1', 'enabled' => COMPLETION_ENABLED]
         );
 
         foreach ($courses as $course) {
@@ -49,16 +49,19 @@ class advance_notify_task extends scheduled_task
                 '',
                 'name,value'
             );
-            
             $sql = "
-            SELECT userid, course, timecompleted
-              FROM {course_completions}
-             WHERE course = :courseid
-               AND timecompleted > 0
+            SELECT cc.userid, cc.course, cc.timecompleted
+              FROM {course_completions} cc
+         LEFT JOIN {local_recompletion_notif} n
+                ON n.userid = cc.userid
+               AND n.courseid = cc.course
+             WHERE cc.course = :courseid
+               AND cc.timecompleted > 0
+               AND n.id IS NULL
                AND (
-                    ((timecompleted + :duration1) - :leadtime) <= :now1
+                    ((cc.timecompleted + :duration1) - :leadtime) <= :now1
                     OR
-                    (timecompleted + :duration2) <= :now2
+                    (cc.timecompleted + :duration2) <= :now2
                )
         ";
 
@@ -75,12 +78,29 @@ class advance_notify_task extends scheduled_task
             $coursecompletions = $DB->get_records_sql($sql, $params);
 
             foreach ($coursecompletions as $cc) {
-                $this->send_advance_notification($cc->userid, $course, $siteconfig,$courseconfig);
+                if ($DB->record_exists('local_recompletion_notify', ['userid' => $cc->userid, 'courseid' => $course->id])) {
+                    continue;
+                }
+
+                $this->send_advance_notification($cc->userid, $course, $siteconfig, $courseconfig);
+
+                $DB->insert_record('local_recompletion_notify', [
+                    'userid' => $cc->userid,
+                    'courseid' => $course->id,
+                    'emailsent' => 1,
+                    'timesent' => time(),
+                    'param1' => null,
+                    'param2' => null,
+                    'param3' => null,
+                    'param4' => null,
+                    'param5' => null,
+                ]);
             }
         }
     }
 
-    protected function send_advance_notification($userid, $course, $config,$courseconfig)
+
+    protected function send_advance_notification($userid, $course, $config, $courseconfig)
     {
         global $DB, $CFG;
         $user = $DB->get_record('user', ['id' => $userid]);
