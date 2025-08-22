@@ -21,7 +21,7 @@ class process_bulk_completion_files extends scheduled_task
     {
         global $CFG, $DB;
 
-        require_once($CFG->dirroot . '/local/recompletion/lib.php'); // your import_completion_file() here
+        require_once($CFG->dirroot . '/local/recompletion/lib.php');
 
         $toprocess = $CFG->dataroot . '/local_recompletion/bulkuploads/toprocess';
         $processed = $CFG->dataroot . '/local_recompletion/bulkuploads/processed';
@@ -30,47 +30,57 @@ class process_bulk_completion_files extends scheduled_task
             mtrace("Directory not found: $toprocess");
             return;
         }
+
         $files = array_filter(scandir($toprocess), function ($file) use ($toprocess) {
-            return is_file("$toprocess/$file");
+            return is_file($toprocess . '/' . $file);
         });
 
         if (empty($files)) {
-            mtrace("No files to process.");
-            return;
-        }
-
-        if (empty($files)) {
-            // No files found
+            mtrace('No files to process.');
             return;
         }
 
         usort($files, function ($a, $b) use ($toprocess) {
-            return filemtime("$toprocess/$b") <=> filemtime("$toprocess/$a");
+            return filemtime($toprocess . '/' . $b) <=> filemtime($toprocess . '/' . $a);
         });
 
         $latestfile = reset($files);
-        $latestfilepath = "$toprocess/$latestfile";
+        $filepath = $toprocess . '/' . $latestfile;
+        mtrace('Processing file: ' . $latestfile);
 
-        $latestfile = $files[0];
-        $filepath = "$toprocess/$latestfile";
-        mtrace("Processing file: $latestfile");
+        $fh = fopen($filepath, 'r');
+        if ($fh === false) {
+            mtrace('Unable to open file: ' . $latestfile);
+            return;
+        }
 
+        $headers = fgetcsv($fh);
+        fclose($fh);
 
-        // Read file content
-        $fs = get_file_storage();
-        $csvcontent = file_get_contents($filepath);
+        if ($headers && isset($headers[0])) {
+            $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', $headers[0]);
+        }
 
-        // Simulate file-like object
-        $tempfile = tmpfile();
-        fwrite($tempfile, $csvcontent);
-        fseek($tempfile, 0);
+        $expected = ['email', 'completed', 'courseid'];
+        $normalized = array_map(function ($h) {
+            return trim(\core_text::strtolower((string)$h));
+        }, (array)$headers);
 
-        // Process file and collect exceptions
+        if ($normalized !== $expected) {
+            $admin = get_admin();
+            $subject = 'Bulk Upload Header Mismatch: ' . $latestfile;
+            $message = "The uploaded file \"$latestfile\" has invalid headers.\nExpected: " . implode(',', $expected) . "\nFound: " . implode(',', $normalized);
+            email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message);
+            if (is_dir($processed)) {
+                @rename($filepath, $processed . '/' . $latestfile);
+                mtrace('Moved ' . $latestfile . ' to processed/');
+            }
+            return;
+        }
+
         $exceptions = [];
-        $exceptions = import_completion_file($filepath, $exceptions); // New version that accepts path & returns exceptions
+        $exceptions = import_completion_file($filepath, $exceptions);
 
-
-        // Email exceptions if any
         if (!empty($exceptions)) {
             $csv = "userid,username,email,reason\n";
             foreach ($exceptions as $e) {
@@ -78,29 +88,20 @@ class process_bulk_completion_files extends scheduled_task
                         return clean_param($v, PARAM_TEXT);
                     }, $e)) . "\n";
             }
-
             $admin = get_admin();
-            $subject = "Bulk Upload Exceptions from $latestfile";
-            $message = "Some users could not be processed in $latestfile. See attached CSV.";
-            $tempattachment = $CFG->tempdir . "/exceptions_" . time() . ".csv";
+            $subject = 'Bulk Upload Exceptions from ' . $latestfile;
+            $message = 'Some users could not be processed in ' . $latestfile . '. See attached CSV.';
+            $tempattachment = $CFG->tempdir . '/exceptions_' . time() . '.csv';
             file_put_contents($tempattachment, $csv);
-
-            email_to_user(
-                $admin,
-                core_user::get_noreply_user(),
-                $subject,
-                $message,
-                $message,
-                $tempattachment,
-                'exceptions.csv'
-            );
-
-            unlink($tempattachment);
+            email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message, $tempattachment, 'exceptions.csv');
+            @unlink($tempattachment);
         }
 
-        // Move file to processed/
-         rename($filepath, "$processed/$latestfile");
-
-        mtrace("Moved $latestfile to processed/");
+        if (is_dir($processed)) {
+            @rename($filepath, $processed . '/' . $latestfile);
+            mtrace('Moved ' . $latestfile . ' to processed/');
+        }
     }
+
+
 }
