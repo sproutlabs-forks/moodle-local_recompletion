@@ -52,7 +52,7 @@ class advance_notify_task extends scheduled_task
             $sql = "
             SELECT cc.userid, cc.course, cc.timecompleted
               FROM {course_completions} cc
-         LEFT JOIN {local_recompletion_notif} n
+         LEFT JOIN {local_recompletion_notify} n
                 ON n.userid = cc.userid
                AND n.courseid = cc.course
              WHERE cc.course = :courseid
