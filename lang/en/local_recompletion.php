@@ -182,3 +182,5 @@ $string['bulkcompletionupload'] = 'Bulk completion upload';
 $string['bulkreset'] = 'Bulk User Reset';
 $string['resetcomplete'] = 'User reset completed successfully.';
 $string['processbulkuploadtask'] = 'Process bulk upload CSV files for course completion';
+$string['enableleadnotify'] = 'Enable advance notifications';
+$string['enableleadnotify_help'] = 'When enabled, users will receive advance notifications before the completion date.';

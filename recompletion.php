@@ -67,7 +67,7 @@ $idmap = $DB->get_records_menu('local_recompletion_config', array('course' => $c
 
 $setnames = array('enable', 'recompletionduration', 'deletegradedata', 'archivecompletiondata',
     'recompletionemailenable', 'recompletionemailsubject', 'recompletionemailbody',
-    'assignevent','notifyleadtime','notifysubject','notifymessagebody');
+    'assignevent','notifyleadtime','notifysubject','notifymessagebody','enableleadnotify');
 
 $activities = local_recompletion_get_supported_activities();
 foreach ($activities as $activity) {
@@ -83,6 +83,7 @@ if ($form->is_cancelled()) {
 
 } else if ($data = $form->get_data()) {
 
+ 
     foreach ($setnames as $name) {
         if (isset($data->$name)) {
             $value = $data->$name;
@@ -101,6 +102,7 @@ if ($form->is_cancelled()) {
             $rc->name = $name;
             $rc->value = $value;
             $rc->course = $course->id;
+            print_r($rc);
             if (empty($rc->id)) {
                 $DB->insert_record('local_recompletion_config', $rc);
             } else {

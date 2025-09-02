@@ -88,7 +88,9 @@ class local_recompletion_recompletion_form extends moodleform
         // Advance Notification Settings.
         $mform->addElement('header', 'notifyheader', get_string('notifyheading', 'local_recompletion'));
         $mform->setExpanded('notifyheader', false);
-
+       
+        $mform->addElement('checkbox', 'enableleadnotify', get_string('enableleadnotify', 'local_recompletion'));
+        $mform->addHelpButton('enableleadnotify', 'enableleadnotify', 'local_recompletion');
         $mform->addElement('text', 'notifyleadtime', get_string('defaultleadtime', 'local_recompletion'), 'size="5"');
         $mform->setType('notifyleadtime', PARAM_INT);
         $mform->setDefault('notifyleadtime', $config->notifyleadtime);

@@ -36,7 +36,7 @@ class advance_notify_task extends scheduled_task
        AND cfg.name = :cfgname
        AND cfg.value = :cfgval
      WHERE c.enablecompletion = :enabled",
-            ['cfgname' => 'enable', 'cfgval' => '1', 'enabled' => COMPLETION_ENABLED]
+            ['cfgname' => 'enableleadnotify', 'cfgval' => '1', 'enabled' => COMPLETION_ENABLED]
         );
 
         foreach ($courses as $course) {

@@ -65,13 +65,13 @@ if ($hassiteconfig) {
     ));
 
 // Default lead times (in days) for advance notification (comma-separated per course override)
-    $settings->add(new admin_setting_configtext(
-        'local_recompletion/default_leadtime',
-        get_string('defaultleadtime', 'local_recompletion'),
-        get_string('defaultleadtime_desc', 'local_recompletion'),
-        180,
-        PARAM_INT
-    ));
+//    $settings->add(new admin_setting_configtext(
+//        'local_recompletion/default_leadtime',
+//        get_string('defaultleadtime', 'local_recompletion'),
+//        get_string('defaultleadtime_desc', 'local_recompletion'),
+//        180,
+//        PARAM_INT
+//    ));
 
 // Default subject
     $settings->add(new admin_setting_configtext(
