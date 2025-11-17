@@ -94,6 +94,7 @@ class local_recompletion_recompletion_form extends moodleform
         $mform->addElement('text', 'notifyleadtime', get_string('defaultleadtime', 'local_recompletion'), 'size="5"');
         $mform->setType('notifyleadtime', PARAM_INT);
         $mform->setDefault('notifyleadtime', $config->notifyleadtime);
+        $mform->addRule('notifyleadtime', null, 'numeric', null, 'client');
        
         /* Hide for now.
         $mform->addElement('text', 'notifysubject', get_string('defaultnotifysubject', 'local_recompletion'), 'size="80"');

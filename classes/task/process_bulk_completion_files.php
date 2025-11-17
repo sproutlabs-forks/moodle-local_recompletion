@@ -65,8 +65,8 @@ class process_bulk_completion_files extends scheduled_task
         $normalized = array_map(function ($h) {
             return trim(\core_text::strtolower((string)$h));
         }, (array)$headers);
-
-        if ($normalized !== $expected) {
+        $missing = array_diff($expected, $normalized);
+        if (!empty($missing)) {
             $admin = get_admin();
             $subject = 'Bulk Upload Header Mismatch: ' . $latestfile;
             $message = "The uploaded file \"$latestfile\" has invalid headers.\nExpected: " . implode(',', $expected) . "\nFound: " . implode(',', $normalized);
@@ -82,16 +82,20 @@ class process_bulk_completion_files extends scheduled_task
         $exceptions = import_completion_file($filepath, $exceptions);
 
         if (!empty($exceptions)) {
-            $csv = "userid,username,email,reason\n";
+            $csv = "email,courseid,reason\n";
             foreach ($exceptions as $e) {
-                $csv .= implode(',', array_map(function ($v) {
-                        return clean_param($v, PARAM_TEXT);
-                    }, $e)) . "\n";
+                $row = array(
+                    clean_param($e['email'], PARAM_TEXT),
+                    clean_param($e['courseid'], PARAM_INT),
+                    clean_param($e['reason'], PARAM_TEXT),
+                );
+                $csv .= implode(',', $row) . "\n";
             }
             $admin = get_admin();
             $subject = 'Bulk Upload Exceptions from ' . $latestfile;
             $message = 'Some users could not be processed in ' . $latestfile . '. See attached CSV.';
-            $tempattachment = $CFG->tempdir . '/exceptions_' . time() . '.csv';
+            $tempattachment = $CFG->dataroot . '/local_recompletion/exceptions_' . time() . '.csv';
+
             file_put_contents($tempattachment, $csv);
             email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message, $tempattachment, 'exceptions.csv');
             @unlink($tempattachment);

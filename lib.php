@@ -124,9 +124,9 @@ function recompletion_mark_course_completion($userid, $courseid, $unixtimestamp)
 {
     global $CFG, $DB; // 👈 This is required to use $CFG inside the function
     require_once($CFG->dirroot . '/completion/completion_completion.php');
-    print_r($userid . PHP_EOL);
-    print_r($courseid . PHP_EOL);
-    print_r($unixtimestamp . PHP_EOL);
+//    print_r($userid . PHP_EOL);
+//    print_r($courseid . PHP_EOL);
+//    print_r($unixtimestamp . PHP_EOL);
     $params = array(
         'userid' => $userid,
         'course' => $courseid
