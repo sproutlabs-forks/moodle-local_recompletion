@@ -69,7 +69,7 @@ function import_completion_file(string $filepath): array {
         }
 
         if (!is_enrolled($context, $user->id)) {
-            $row['reason'] = 'User not enrolled';
+            $row['reason'] = 'User not enrolled or may duplicate account exists.';
             $exceptions[] = $row;
             continue;
         }
