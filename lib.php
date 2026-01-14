@@ -31,7 +31,8 @@ defined('MOODLE_INTERNAL') || die;
  * @param stdClass $course The course to object for the tool
  * @param context $context The context of the course
  */
-function import_completion_file(string $filepath): array {
+function import_completion_file(string $filepath): array
+{
     global $DB;
 
     $fh = fopen($filepath, 'r');
@@ -39,27 +40,73 @@ function import_completion_file(string $filepath): array {
     $exceptions = []; // To collect exception rows
 
     if ($fh) {
-        $columns = fgetcsv($fh); // read header
-        while (($row = fgetcsv($fh)) !== false) {
-            if (count($row) !== count($columns)) {
-                continue; // skip bad row
+        $columns = fgetcsv($fh);
+
+        if ($columns !== false) {
+            $cleancolumns = [];
+
+            foreach ($columns as $col) {
+                $col = (string)$col;
+                $col = preg_replace('/^\xEF\xBB\xBF/', '', $col);
+                $col = trim($col);
+                $col = core_text::strtolower($col);
+                $cleancolumns[] = $col;
             }
-            $csv[] = array_combine($columns, $row);
+
+            $expected = ['email', 'completed', 'courseid'];
+
+            $missing = array_diff($expected, $cleancolumns);
+            $extra = array_diff($cleancolumns, $expected);
+
+            if (!empty($missing) || !empty($extra)) {
+                fclose($fh);
+                throw new coding_exception(
+                    'Invalid CSV headers. Missing: ' . implode(',', $missing) .
+                    ' Extra: ' . implode(',', $extra)
+                );
+            }
+
+            while (($row = fgetcsv($fh)) !== false) {
+                if (count($row) !== count($cleancolumns)) {
+                    continue;
+                }
+
+                $csv[] = array_combine($cleancolumns, $row);
+            }
         }
+
         fclose($fh);
     }
 
     foreach ($csv as $row) {
-        $email = trim($row['email']);
-        $completed = trim($row['completed']);
-        $courseid = trim($row['courseid']);
+        $email = trim((string)($row['email'] ?? ''));
+        $completed = trim((string)($row['completed'] ?? ''));
+        $courseid = (int)trim((string)($row['courseid'] ?? ''));
 
-        $user = $DB->get_record('user', ['email' => $email, 'deleted' => 0], '*', IGNORE_MISSING);
-        if (!$user) {
+        if ($email === '' || $completed === '' || $courseid <= 0) {
+            continue;
+        }
+
+        $users = $DB->get_records('user', ['email' => $email, 'deleted' => 0], '', 'id');
+
+        if (count($users) !== 1) {
+            continue;
+        }
+
+        $user = reset($users);
+        if (!$users) {
             $row['reason'] = 'User not found';
             $exceptions[] = $row;
             continue;
         }
+
+        if (count($users) > 1) {
+            $row['reason'] = 'Multiple users with same email';
+            $exceptions[] = $row;
+            continue;
+        }
+
+        $user = reset($users);
 
         $context = context_course::instance($courseid, IGNORE_MISSING);
         if (!$context) {
@@ -87,7 +134,6 @@ function import_completion_file(string $filepath): array {
 
     return $exceptions;
 }
-
 
 
 function local_recompletion_extend_navigation_course($navigation, $course, $context)

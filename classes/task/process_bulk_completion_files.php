@@ -62,14 +62,21 @@ class process_bulk_completion_files extends scheduled_task
         }
 
         $expected = ['email', 'completed', 'courseid'];
-        $normalized = array_map(function ($h) {
-            return trim(\core_text::strtolower((string)$h));
+
+        $found = array_map(function($h) {
+            return trim((string)$h);
         }, (array)$headers);
-        $missing = array_diff($expected, $normalized);
-        if (!empty($missing)) {
+
+        $missing = array_diff($expected, $found);
+        $extra   = array_diff($found, $expected);
+
+        if (!empty($missing) || !empty($extra)) {
             $admin = get_admin();
             $subject = 'Bulk Upload Header Mismatch: ' . $latestfile;
-            $message = "The uploaded file \"$latestfile\" has invalid headers.\nExpected: " . implode(',', $expected) . "\nFound: " . implode(',', $normalized);
+            $message =
+                "The uploaded file \"$latestfile\" has invalid headers.\n" .
+                "Expected: " . implode(',', $expected) . "\n" .
+                "Found: " . implode(',', $found);
             email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message);
             if (is_dir($processed)) {
                 @rename($filepath, $processed . '/' . $latestfile);
