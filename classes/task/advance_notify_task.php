@@ -27,7 +27,6 @@ class advance_notify_task extends scheduled_task
         require_once($CFG->libdir . '/completionlib.php');
 
         $siteconfig = get_config('local_recompletion');
-
         $courses = $DB->get_records_sql("
     SELECT DISTINCT c.id, c.fullname
       FROM {course} c
@@ -40,15 +39,16 @@ class advance_notify_task extends scheduled_task
         );
 
         foreach ($courses as $course) {
-            $duration = (int)$siteconfig->duration;
-            $leadseconds = (int)$siteconfig->default_leadtime * DAYSECS;
-
             $courseconfig = (object)$DB->get_records_menu(
                 'local_recompletion_config',
                 ['course' => $course->id],
                 '',
                 'name,value'
             );
+
+            $duration = (int)($courseconfig->recompletionduration ?? $siteconfig->duration);
+            $leadseconds = (int)($courseconfig->notifyleadtime ?? 0) * DAYSECS;
+
             $sql = "
             SELECT cc.userid, cc.course, cc.timecompleted
               FROM {course_completions} cc
