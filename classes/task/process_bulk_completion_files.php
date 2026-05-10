@@ -88,6 +88,11 @@ class process_bulk_completion_files extends scheduled_task
         $exceptions = [];
         $exceptions = import_completion_file($filepath, $exceptions);
 
+        $admin = get_admin();
+        $subject = 'Bulk Upload Processed Complete: ' . $latestfile;
+        $message = $latestfile;
+        email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message);
+
         if (!empty($exceptions)) {
             $csv = "email,courseid,reason\n";
             foreach ($exceptions as $e) {
@@ -98,7 +103,6 @@ class process_bulk_completion_files extends scheduled_task
                 );
                 $csv .= implode(',', $row) . "\n";
             }
-            $admin = get_admin();
             $subject = 'Bulk Upload Exceptions from ' . $latestfile;
             $message = 'Some users could not be processed in ' . $latestfile . '. See attached CSV.';
             $tempattachment = $CFG->dataroot . '/local_recompletion/exceptions_' . time() . '.csv';
