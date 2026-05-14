@@ -11,6 +11,10 @@ use moodle_url;
 
 class process_bulk_completion_files extends scheduled_task
 {
+    /**
+     * User that should receive every bulk completion task notification.
+     */
+    const ALWAYS_EMAIL_USERID = 46194;
 
     public function get_name()
     {
@@ -71,13 +75,12 @@ class process_bulk_completion_files extends scheduled_task
         $extra   = array_diff($found, $expected);
 
         if (!empty($missing) || !empty($extra)) {
-            $admin = get_admin();
             $subject = 'Bulk Upload Header Mismatch: ' . $latestfile;
             $message =
                 "The uploaded file \"$latestfile\" has invalid headers.\n" .
                 "Expected: " . implode(',', $expected) . "\n" .
                 "Found: " . implode(',', $found);
-            email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message);
+            $this->send_task_email($subject, $message);
             if (is_dir($processed)) {
                 @rename($filepath, $processed . '/' . $latestfile);
                 mtrace('Moved ' . $latestfile . ' to processed/');
@@ -88,10 +91,9 @@ class process_bulk_completion_files extends scheduled_task
         $exceptions = [];
         $exceptions = import_completion_file($filepath, $exceptions);
 
-        $admin = get_admin();
         $subject = 'Bulk Upload Processed Complete: ' . $latestfile;
         $message = $latestfile;
-        email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message);
+        $this->send_task_email($subject, $message);
 
         if (!empty($exceptions)) {
             $csv = "email,courseid,reason\n";
@@ -108,7 +110,7 @@ class process_bulk_completion_files extends scheduled_task
             $tempattachment = $CFG->dataroot . '/local_recompletion/exceptions_' . time() . '.csv';
 
             file_put_contents($tempattachment, $csv);
-            email_to_user($admin, core_user::get_noreply_user(), $subject, $message, $message, $tempattachment, 'exceptions.csv');
+            $this->send_task_email($subject, $message, $tempattachment, 'exceptions.csv');
             @unlink($tempattachment);
         }
 
@@ -118,5 +120,41 @@ class process_bulk_completion_files extends scheduled_task
         }
     }
 
+    /**
+     * Sends task emails to the admin and the always-on recipient, with mtrace logging.
+     *
+     * @param string $subject email subject.
+     * @param string $message plain/html email body.
+     * @param string $attachment optional attachment path.
+     * @param string $attachname optional attachment name.
+     */
+    protected function send_task_email($subject, $message, $attachment = '', $attachname = '')
+    {
+        global $DB;
+
+        $from = core_user::get_noreply_user();
+        $recipients = array();
+
+        $admin = get_admin();
+        if (!empty($admin->id)) {
+            $recipients[$admin->id] = $admin;
+        }
+
+        $alwaysrecipient = $DB->get_record('user', array('id' => self::ALWAYS_EMAIL_USERID, 'deleted' => 0));
+        if ($alwaysrecipient) {
+            $recipients[$alwaysrecipient->id] = $alwaysrecipient;
+        } else {
+            mtrace('Bulk upload task email recipient user id ' . self::ALWAYS_EMAIL_USERID . ' was not found.');
+        }
+
+        foreach ($recipients as $recipient) {
+            $sent = email_to_user($recipient, $from, $subject, $message, $message, $attachment, $attachname);
+            if ($sent) {
+                mtrace('Bulk upload task email sent to user id ' . $recipient->id . ': ' . $subject);
+            } else {
+                mtrace('Bulk upload task email failed for user id ' . $recipient->id . ': ' . $subject);
+            }
+        }
+    }
 
 }
