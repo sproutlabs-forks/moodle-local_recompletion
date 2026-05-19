@@ -12,9 +12,9 @@ use moodle_url;
 class process_bulk_completion_files extends scheduled_task
 {
     /**
-     * User that should receive every bulk completion task notification.
+     * Support mailbox that should receive every bulk completion task notification.
      */
-    const ALWAYS_EMAIL_USERID = 46194;
+    const SUPPORT_EMAIL = 'support@sproutlabs.com.au';
 
     public function get_name()
     {
@@ -30,6 +30,10 @@ class process_bulk_completion_files extends scheduled_task
         $toprocess = $CFG->dataroot . '/local_recompletion/bulkuploads/toprocess';
         $processed = $CFG->dataroot . '/local_recompletion/bulkuploads/processed';
 
+        mtrace('Bulk completion file task started.');
+        mtrace('Bulk completion to-process directory: ' . $toprocess);
+        mtrace('Bulk completion processed directory: ' . $processed);
+
         if (!is_dir($toprocess)) {
             mtrace("Directory not found: $toprocess");
             return;
@@ -44,6 +48,8 @@ class process_bulk_completion_files extends scheduled_task
             return;
         }
 
+        mtrace('Bulk completion files found: ' . count($files));
+
         usort($files, function ($a, $b) use ($toprocess) {
             return filemtime($toprocess . '/' . $b) <=> filemtime($toprocess . '/' . $a);
         });
@@ -51,6 +57,9 @@ class process_bulk_completion_files extends scheduled_task
         $latestfile = reset($files);
         $filepath = $toprocess . '/' . $latestfile;
         mtrace('Processing file: ' . $latestfile);
+        mtrace('Processing file path: ' . $filepath);
+        mtrace('Processing file size: ' . filesize($filepath) . ' bytes');
+        mtrace('Processing file modified time: ' . userdate(filemtime($filepath)));
 
         $fh = fopen($filepath, 'r');
         if ($fh === false) {
@@ -74,7 +83,11 @@ class process_bulk_completion_files extends scheduled_task
         $missing = array_diff($expected, $found);
         $extra   = array_diff($found, $expected);
 
+        mtrace('Expected CSV headers: ' . implode(',', $expected));
+        mtrace('Found CSV headers: ' . implode(',', $found));
+
         if (!empty($missing) || !empty($extra)) {
+            mtrace('Header mismatch found for file: ' . $latestfile);
             $subject = 'Bulk Upload Header Mismatch: ' . $latestfile;
             $message =
                 "The uploaded file \"$latestfile\" has invalid headers.\n" .
@@ -82,14 +95,23 @@ class process_bulk_completion_files extends scheduled_task
                 "Found: " . implode(',', $found);
             $this->send_task_email($subject, $message);
             if (is_dir($processed)) {
-                @rename($filepath, $processed . '/' . $latestfile);
-                mtrace('Moved ' . $latestfile . ' to processed/');
+                $moved = @rename($filepath, $processed . '/' . $latestfile);
+                if ($moved) {
+                    mtrace('Moved ' . $latestfile . ' to processed/');
+                } else {
+                    mtrace('Failed to move ' . $latestfile . ' to processed/');
+                }
+            } else {
+                mtrace('Processed directory not found: ' . $processed);
             }
             return;
         }
 
+        mtrace('Starting import for file: ' . $latestfile);
         $exceptions = [];
         $exceptions = import_completion_file($filepath, $exceptions);
+        mtrace('Import finished for file: ' . $latestfile);
+        mtrace('Import exception count: ' . count($exceptions));
 
         $subject = 'Bulk Upload Processed Complete: ' . $latestfile;
         $message = $latestfile;
@@ -115,13 +137,19 @@ class process_bulk_completion_files extends scheduled_task
         }
 
         if (is_dir($processed)) {
-            @rename($filepath, $processed . '/' . $latestfile);
-            mtrace('Moved ' . $latestfile . ' to processed/');
+            $moved = @rename($filepath, $processed . '/' . $latestfile);
+            if ($moved) {
+                mtrace('Moved ' . $latestfile . ' to processed/');
+            } else {
+                mtrace('Failed to move ' . $latestfile . ' to processed/');
+            }
+        } else {
+            mtrace('Processed directory not found: ' . $processed);
         }
     }
 
     /**
-     * Sends task emails to the admin and the always-on recipient, with mtrace logging.
+     * Sends task emails to the admin and support mailbox user, with mtrace logging.
      *
      * @param string $subject email subject.
      * @param string $message plain/html email body.
@@ -140,11 +168,20 @@ class process_bulk_completion_files extends scheduled_task
             $recipients[$admin->id] = $admin;
         }
 
-        $alwaysrecipient = $DB->get_record('user', array('id' => self::ALWAYS_EMAIL_USERID, 'deleted' => 0));
-        if ($alwaysrecipient) {
-            $recipients[$alwaysrecipient->id] = $alwaysrecipient;
+        $supportrecipients = $DB->get_records(
+            'user',
+            array('email' => self::SUPPORT_EMAIL, 'deleted' => 0),
+            'id ASC',
+            '*',
+            0,
+            1
+        );
+        if (!empty($supportrecipients)) {
+            foreach ($supportrecipients as $supportrecipient) {
+                $recipients[$supportrecipient->id] = $supportrecipient;
+            }
         } else {
-            mtrace('Bulk upload task email recipient user id ' . self::ALWAYS_EMAIL_USERID . ' was not found.');
+            mtrace('Bulk upload task email recipient ' . self::SUPPORT_EMAIL . ' was not found.');
         }
 
         foreach ($recipients as $recipient) {
