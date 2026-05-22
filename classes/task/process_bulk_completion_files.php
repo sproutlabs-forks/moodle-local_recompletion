@@ -108,8 +108,28 @@ class process_bulk_completion_files extends scheduled_task
         }
 
         mtrace('Starting import for file: ' . $latestfile);
-        $exceptions = [];
-        $exceptions = import_completion_file($filepath, $exceptions);
+        try {
+            $exceptions = import_completion_file($filepath);
+        } catch (\Throwable $e) {
+            mtrace('Import failed for file ' . $latestfile . ': ' . $e->getMessage());
+            $subject = 'Bulk Upload Failed: ' . $latestfile;
+            $message =
+                "The bulk upload file \"$latestfile\" failed during processing.\n\n" .
+                "Error: " . $e->getMessage();
+            $this->send_task_email($subject, $message);
+
+            if (is_dir($processed)) {
+                $moved = @rename($filepath, $processed . '/' . $latestfile);
+                if ($moved) {
+                    mtrace('Moved failed file ' . $latestfile . ' to processed/');
+                } else {
+                    mtrace('Failed to move failed file ' . $latestfile . ' to processed/');
+                }
+            } else {
+                mtrace('Processed directory not found: ' . $processed);
+            }
+            return;
+        }
         mtrace('Import finished for file: ' . $latestfile);
         mtrace('Import exception count: ' . count($exceptions));
 
@@ -118,15 +138,19 @@ class process_bulk_completion_files extends scheduled_task
         $this->send_task_email($subject, $message);
 
         if (!empty($exceptions)) {
-            $csv = "email,courseid,reason\n";
+            $csvhandle = fopen('php://temp', 'r+');
+            fputcsv($csvhandle, array('email', 'courseid', 'reason'));
             foreach ($exceptions as $e) {
-                $row = array(
-                    clean_param($e['email'], PARAM_TEXT),
-                    clean_param($e['courseid'], PARAM_INT),
-                    clean_param($e['reason'], PARAM_TEXT),
-                );
-                $csv .= implode(',', $row) . "\n";
+                fputcsv($csvhandle, array(
+                    $e['email'] ?? '',
+                    $e['courseid'] ?? '',
+                    $e['reason'] ?? '',
+                ));
             }
+            rewind($csvhandle);
+            $csv = stream_get_contents($csvhandle);
+            fclose($csvhandle);
+
             $subject = 'Bulk Upload Exceptions from ' . $latestfile;
             $message = 'Some users could not be processed in ' . $latestfile . '. See attached CSV.';
             $tempattachment = $CFG->dataroot . '/local_recompletion/exceptions_' . time() . '.csv';
