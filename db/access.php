@@ -46,6 +46,15 @@ $capabilities = array(
             'manager' => CAP_ALLOW
         )
     ),
+    'local/recompletion:resetfacetofacecompletion' => array(
+        'riskbitmask' => RISK_DATALOSS,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        )
+    ),
 );
-
 

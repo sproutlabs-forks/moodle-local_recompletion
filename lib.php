@@ -298,7 +298,8 @@ function local_recompletion_extend_navigation(global_navigation $nav)
 {
     global $PAGE;
     $url = $PAGE->url->out_as_local_url(false);
-    if (strpos($url, '/mod/facetoface/attendees.php') !== false) {
+    if (strpos($url, '/mod/facetoface/attendees.php') !== false &&
+            has_capability('local/recompletion:resetfacetofacecompletion', $PAGE->context)) {
         $PAGE->requires->js_call_amd('local_recompletion/injectbulkreset', 'init');
     }
 }

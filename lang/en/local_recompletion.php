@@ -32,6 +32,7 @@ $string['recompletionrange_help'] = 'Set the period of time before a users compl
 $string['recompletionsettingssaved'] = 'Recompletion settings saved';
 $string['recompletion:manage'] = 'Allow course recompletion settings to be changed';
 $string['recompletion:resetmycompletion'] = 'Reset my own completion';
+$string['recompletion:resetfacetofacecompletion'] = 'Reset course completion for Face-to-Face session attendees';
 $string['resetmycompletion'] = 'Reset my activity completion';
 $string['recompletiontask'] = 'Check for users that need to recomplete';
 $string['completionnotenabled'] = 'Completion is not enabled in this course';

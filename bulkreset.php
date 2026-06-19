@@ -10,9 +10,9 @@ $courseid = $facetoface->course;
 $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
 require_login($course);
 $context = context_course::instance($courseid);
-require_capability('local/recompletion:manage', $context);
+require_capability('local/recompletion:resetfacetofacecompletion', $context);
 
-$PAGE->set_url('/local/recompletion/bulkreset.php', ['id' => $facetofacesessionid]);
+$PAGE->set_url('/local/recompletion/bulkreset.php', ['s' => $facetofacesessionid]);
 $PAGE->set_context($context);
 $PAGE->set_title(get_string('bulkreset', 'local_recompletion'));
 $PAGE->set_heading(get_string('bulkreset', 'local_recompletion'));
@@ -32,7 +32,7 @@ function render_user_reset_table($facetofacesessionid, $courseid)
     $attendees = facetoface_get_attendees($facetofacesessionid);
     echo html_writer::start_tag('form', [
         'method' => 'post',
-        'action' => new moodle_url('/local/recompletion/bulkreset_process.php', ['courseid' => $courseid]),
+        'action' => new moodle_url('/local/recompletion/bulkreset_process.php', ['s' => $facetofacesessionid]),
         'id' => 'bulkresetform'
     ]);
 
