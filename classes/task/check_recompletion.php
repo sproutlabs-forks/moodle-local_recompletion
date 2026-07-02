@@ -72,6 +72,10 @@ class check_recompletion extends \core\task\scheduled_task {
         $configs = array();
         $clearcache = false;
         foreach ($users as $user) {
+            if (!local_recompletion_user_is_active_enrolled($user->userid, $user->course)) {
+                continue;
+            }
+
             if (!isset($courses[$user->course])) {
                 // Only get the course record for this course once.
                 $course = get_course($user->course);
@@ -180,8 +184,9 @@ class check_recompletion extends \core\task\scheduled_task {
      * @param \int $userid - id of user.
      * @param \stdClass $course - course record.
      * @param \stdClass $config - recompletion config.
+     * @param bool $notify Whether to send the recompletion notification email.
      */
-    public function reset_user($userid, $course, $config) {
+    public function reset_user($userid, $course, $config, $notify = true) {
         global $CFG;
         // Archive and delete course completion.
         $this->reset_completions($userid, $course, $config);
@@ -209,8 +214,10 @@ class check_recompletion extends \core\task\scheduled_task {
             }
         }
 
-        // Now notify user.
-        $this->notify_user($userid, $course, $config);
+        if ($notify) {
+            // Now notify user.
+            $this->notify_user($userid, $course, $config);
+        }
 
         // Trigger completion reset event for this user.
         $context = \context_course::instance($course->id);

@@ -82,6 +82,10 @@ class advance_notify_task extends scheduled_task
                     continue;
                 }
 
+                if (!local_recompletion_user_is_active_enrolled($cc->userid, $course)) {
+                    continue;
+                }
+
                 $this->send_advance_notification($cc->userid, $course, $siteconfig, $courseconfig);
 
                 $DB->insert_record('local_recompletion_notify', [
