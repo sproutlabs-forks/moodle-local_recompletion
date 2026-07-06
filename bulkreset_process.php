@@ -76,6 +76,5 @@ foreach ($users as $user) {
 // Redirect back with message.
 redirect(
     new moodle_url('/course/view.php', ['id' => $courseid]),
-    get_string('resetcomplete', 'local_recompletion'),
-
+    get_string('resetcomplete', 'local_recompletion')
 );
